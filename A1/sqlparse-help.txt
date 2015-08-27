@@ -1,0 +1,31 @@
+sql = 'select * from foo;'
+In [28]: sqlparse.split(sql)
+Out[28]: [u'select * from foo;']
+
+In [29]: print sqlparse.format(sql, reindent = True)
+select *
+from foo;
+Has many options
+
+In [32]: sqlparse.parse(sql)
+Out[32]: (<Statement 'select...' at 0x2468490>,)
+
+In [33]: sqlparse.parse(sql)[0]
+Out[33]: <Statement 'select...' at 0x2468270>
+
+In [36]: sqlparse.parse(sql)[0].tokens
+Out[36]: 
+[<DML 'select' at 0x24d8470>,
+ <Whitespace ' ' at 0x24d84c8>,
+ <Wildcard '*' at 0x24d8520>,
+ <Whitespace ' ' at 0x24d8578>,
+ <Keyword 'from' at 0x24d85d0>,
+ <Whitespace ' ' at 0x24d8628>,
+ <Identifier 'foo' at 0x24d16b0>,
+ <Punctuation ';' at 0x24d86d8>]
+
+
+ sqlparse.sql.Token(ttype, value)
+ stmt.tokens[0].value
+
+ 
