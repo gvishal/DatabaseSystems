@@ -2,16 +2,18 @@ import sqlparse
 import table
 import query
 import sys
+import operator as op
 
-tableName = 'new-table'
+newTableName = 'new-table'
 
 class process:
 
   def __init__(self, procSql, DB):
+    self.ops = {'<': op.lt, '<=': op.le, '==': op.eq, '!=': op.ne, '>': op.gt, '>=': op.ge}
     self.processFrom(procSql, DB)
     self.processWhere(procSql, DB)
     self.processSelect(procSql, DB)
-    self.printNewTable(procSql, DB)
+    # self.printNewTable(procSql, DB)
 
   def processFrom(self, procSql, DB):
     newTable = DB['new-table']
@@ -25,8 +27,19 @@ class process:
 
   def processWhere(self, procSql, DB):
     if not procSql.where:
+      # No where to go!
       print 'No where conditions'
       return
+
+    if procSql.twoWhere:
+      # Two conditionals
+      if len(andConditions) > 0:
+        pass
+      elif len(orConditions) > 0:
+        pass
+    else:
+      # Only one conditional, present in andConditions
+      pass
 
   def processSelect(self, procSql, DB):
     if len(procSql.columns) == 1 and procSql.allColumns:
@@ -34,7 +47,12 @@ class process:
     output = []
 
   def printNewTable(self, procSql, DB):
-    
+    col_width = max(len(word) for word in DB[newTableName].headerWthTblName) + 2
+
+    print "".join(word.ljust(col_width) for word in DB[newTableName].headerWthTblName)
+
+    for row in DB[newTableName].rows:
+      print "".join(word.ljust(col_width) for word in row)
 
 
 def main():
@@ -48,8 +66,6 @@ def main():
   DB['new-table'] = table.Table(name='new-table')
   # print DB
   pr = process(procSql, DB)
-
-
 
 if __name__ == '__main__':
 	main()
