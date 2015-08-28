@@ -52,11 +52,11 @@ class Table:
   def addRow(self, r):
     self.rows.append(r)
 
-  def copyTable(self, newTable):
-    # newTable = Table(name=newTableName)
-    newTable.header = copy.deepcopy(self.header)
-    newTable.rows = copy.deepcopy(self.rows)
-    # return newTable
+  def copyTable(self, firstTable):
+    for h in firstTable.headerWthTblName:
+      self.addHeader(h)
+    for r1 in firstTable.rows:
+      self.addRow(r1)
 
   def crossProduct(self, firstTable, secondTable):
     for h in firstTable.headerWthTblName:

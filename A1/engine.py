@@ -1,3 +1,8 @@
+'''
+Will work even for 'select * from table1 where x=','select * from table1 where x=2 and y=2'
+ i.e partial where clauses.
+'''
+
 import sqlparse
 import table
 import query
@@ -18,7 +23,7 @@ class process:
   def processFrom(self, procSql, DB):
     newTable = DB['new-table']
     if len(procSql.tables) == 1:
-      DB[procSql.tables[0]].copyTable(newTable)
+      newTable.copyTable(DB[procSql.tables[0]])
     if len(procSql.tables) == 2:
       # Take cross product
       newTable.crossProduct(DB[procSql.tables[0]], DB[procSql.tables[1]])
@@ -26,7 +31,7 @@ class process:
     # print DB['new-table'].__dict__
 
   def processWhere(self, procSql, DB):
-    if not procSql.where:
+    if not procSql.where or len(procSql.tempConditions) is 0:
       # No where to go!
       print 'No where conditions'
       return
@@ -60,6 +65,7 @@ class process:
       col2 = pickCond[0][2]
       op1 = pickCond[0][1]
       hd = DB[newTableName].headerWthTblName
+      # print hd
       for row in DB[newTableName].rows:
         if ( (self.ops[op1](row[hd.index(col1)], col2 if query.is_number(col2) else row[hd.index(col2)])) ):
           newRows.append(row)
@@ -85,6 +91,7 @@ def main():
     print 'Please enter a sql statement'
     sys.exit(0)
   sql = sys.argv[1]
+  # print 'Youre sql is:', sql
   procSql = query.Q(sql)
   DB = table.initializeTables()
   DB['new-table'] = table.Table(name='new-table')

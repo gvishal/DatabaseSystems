@@ -90,7 +90,7 @@ class Q:
       for table in tables:
         if col in self.DB[table].header or col in self.DB[table].headerWthTblName:
           colMap[col] += 1
-    print colMap
+    # print colMap
     for col in colMap:
       if colMap[col] != 1:
         return False
@@ -115,7 +115,7 @@ class Q:
       print 'Table not present'
       sys.exit(0)
 
-    print 'Sql valid'
+    # print 'Sql valid'
 
   def checkValidWhitespace(self):
       for i in range(0, len(self.stmt.tokens)):
@@ -126,7 +126,14 @@ class Q:
       return True
 
   def parseQuery(self):
+    # print len(self.stmt.tokens)
+    if len(self.stmt.tokens) < 3:
+      print 'Invalid sql'
+      sys.exit(0)
     self.parseSelect(self.stmt.tokens[2])
+    if len(self.stmt.tokens) < 7:
+      print 'Invalid sql'
+      sys.exit(0)
     self.parseFrom(self.stmt.tokens[6])
     if len(self.stmt.tokens) > 7 and self.stmt.tokens[7].value != ';':
       self.where = True
@@ -172,7 +179,7 @@ class Q:
       self.parseFrom(t)
 
   def parseWhere(self, item):
-    # print 'item: ', item
+    # print 'item: ', item, item.value, item.tokens
     if item.ttype == sqlparse.tokens.Token.Punctuation:
       return
     if item.ttype == sqlparse.tokens.Token.Text.Whitespace:
@@ -200,10 +207,18 @@ class Q:
       return
 
     for t in item.tokens:
+      # print 'herere'
       self.parseWhere(t)
 
   def processTempConditions(self):
     # Process tempConditions
+    # print self.tempConditions
+    if len(self.tempConditions) not in [3, 7]:
+      # No need to exit
+      self.where = False
+      return
+      print 'No where condition specified'
+      sys.exit(0)
     andOr = False
     if len(self.tempConditions) > 3:
       andOr = self.tempConditions[3]
@@ -245,7 +260,11 @@ def main():
           'select * from table1, table2 where A = 10 and E = 20',
           'select * from table1, table2 where E = 20',
           'select * from table1, table2 where B = 10',
-          'select * from table1, table2 where table1.A = 10 and table1.B = 20'
+          'select * from table1, table2 where table1.A = 10 and table1.B = 20',
+          'select * from table1 where ',
+          'select * from table1 where x=2 and y=2',
+          'select * from table1 where x=2 and y=',
+          'select * from table1 where x=2',
           ]
 
   for i in sql:
