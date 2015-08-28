@@ -9,11 +9,11 @@ newTableName = 'new-table'
 class process:
 
   def __init__(self, procSql, DB):
-    self.ops = {'<': op.lt, '<=': op.le, '==': op.eq, '!=': op.ne, '>': op.gt, '>=': op.ge}
+    self.ops = {'<': op.lt, '<=': op.le, '=': op.eq, '!=': op.ne, '>': op.gt, '>=': op.ge}
     self.processFrom(procSql, DB)
     self.processWhere(procSql, DB)
     self.processSelect(procSql, DB)
-    # self.printNewTable(procSql, DB)
+    self.printNewTable(procSql, DB)
 
   def processFrom(self, procSql, DB):
     newTable = DB['new-table']
@@ -33,13 +33,37 @@ class process:
 
     if procSql.twoWhere:
       # Two conditionals
-      if len(andConditions) > 0:
-        pass
-      elif len(orConditions) > 0:
-        pass
+      pickCond = ''
+      if len(procSql.andConditions) > 0:
+        pickCond = procSql.andConditions
+      elif len(procSql.orConditions) > 0:
+        pickCond = procSql.orConditions
+
+      newRows = []
+      col1 = pickCond[0][0]
+      col2 = pickCond[0][2]
+      col3 = pickCond[1][0]
+      col4 = pickCond[1][2]
+      op1 = pickCond[0][1]
+      op2 = pickCond[1][1]
+      hd = DB[newTableName].headerWthTblName
+      for row in DB[newTableName].rows:
+        if ( (self.ops[op1](row[hd.index(col1)], col2 if query.is_number(col2) else row[hd.index(col2)])) and
+              (self.ops[op2](row[hd.index(col3)], col4 if query.is_number(col4) else row[hd.index(col4)])) ):
+          newRows.append(row)
+      DB[newTableName].rows = newRows
     else:
       # Only one conditional, present in andConditions
-      pass
+      pickCond = procSql.andConditions
+      newRows = []
+      col1 = pickCond[0][0]
+      col2 = pickCond[0][2]
+      op1 = pickCond[0][1]
+      hd = DB[newTableName].headerWthTblName
+      for row in DB[newTableName].rows:
+        if ( (self.ops[op1](row[hd.index(col1)], col2 if query.is_number(col2) else row[hd.index(col2)])) ):
+          newRows.append(row)
+      DB[newTableName].rows = newRows
 
   def processSelect(self, procSql, DB):
     if len(procSql.columns) == 1 and procSql.allColumns:

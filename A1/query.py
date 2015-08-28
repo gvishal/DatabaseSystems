@@ -46,28 +46,29 @@ class Q:
     if not self.where:
       return
     
+    # If only one where condition
     if not self.checkColsPresentUnique([self.andConditions[0][0], self.andConditions[0][2]], self.tables):
       print 'Ambigous or absent columns in where clause'
       sys.exit(0)
     if not is_number(self.andConditions[0][0]):
-      self.andConditions[0][0] = self.appTblName(colInTable(self.andConditions[0][0]), self.andConditions[0][0])
+      self.andConditions[0][0] = self.appTblName(self.colInTable(self.andConditions[0][0]), self.andConditions[0][0])
     if not is_number(self.andConditions[0][2]):
-      self.andConditions[0][2] = self.appTblName(colInTable(self.andConditions[0][2]), self.andConditions[0][2])
+      self.andConditions[0][2] = self.appTblName(self.colInTable(self.andConditions[0][2]), self.andConditions[0][2])
 
     if self.twoWhere:
       if not self.checkColsPresentUnique([self.andConditions[1][0], self.andConditions[1][2]], self.tables):
         print 'Ambigous or absent columns in where clause'
         sys.exit(0)
       if not is_number(self.andConditions[1][0]):
-        self.andConditions[1][0] = self.appTblName(colInTable(self.andConditions[1][0]), self.andConditions[1][0])
+        self.andConditions[1][0] = self.appTblName(self.colInTable(self.andConditions[1][0]), self.andConditions[1][0])
       if not is_number(self.andConditions[1][2]):
-        self.andConditions[1][2] = self.appTblName(colInTable(self.andConditions[1][2]), self.andConditions[1][2])
+        self.andConditions[1][2] = self.appTblName(self.colInTable(self.andConditions[1][2]), self.andConditions[1][2])
 
 
   def colInTable(self, colName):
     # returns tablename for colName
     for table in self.tables:
-      if colName in self.DB[table].header or col in self.DB[table].headerWthTblName:
+      if colName in self.DB[table].header or colName in self.DB[table].headerWthTblName:
         return table
     print 'Some error occurred in colInTable() method'
     sys.exit(0)
@@ -240,14 +241,25 @@ def main():
           'select * from table1 where A = 10;',
           'select * from table1, table2 where A = 10;',
           'select * from table1 where D = 20',
-          'select * from table3 where A = 10'
+          'select * from table3 where A = 10',
+          'select * from table1, table2 where A = 10 and E = 20',
+          'select * from table1, table2 where E = 20',
+          'select * from table1, table2 where B = 10',
+          'select * from table1, table2 where table1.A = 10 and table1.B = 20'
           ]
 
-  # for i in sql:
-  #   q = Q(i)
-  #   print q.query, q.__dict__
-  q = Q(sql[-2])
-  print q.query, q.__dict__
+  for i in sql:
+    print 
+    try:
+      print i
+      q = Q(i)
+      print q.__dict__
+    except SystemExit as e:
+      print 'sys.exit called'
+      pass
+  # q = Q(sql[-2])
+  # print q.query, q.__dict__
+
   # q.parseQuery()
   pass
 
