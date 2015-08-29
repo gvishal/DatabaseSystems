@@ -28,6 +28,7 @@ class Table:
     self.headerWthTblName = []
     self.rows = []
     self.name = name
+    self.columns = []
 
     if filename != None:
       self.name = filename.split('.')[0]
@@ -38,12 +39,20 @@ class Table:
         reader = csv.reader(csvfile, delimiter=',')
         for r in reader:
           self.rows.append(r)
+      self.genColumns()
 
   def __str__(self):
     return self.name + ' contains: ' +  ' '.join(self.header)
 
   def __repr__(self):
     return self.__str__()
+
+  def genColumns(self):
+    for r in self.rows:
+      for index, r1 in enumerate(r):
+        if len(self.columns) <= index:
+          self.columns.append([])
+        self.columns[index].append(r1)
 
   def addHeader(self, v):
     self.header.append(v)
@@ -57,6 +66,7 @@ class Table:
       self.addHeader(h)
     for r1 in firstTable.rows:
       self.addRow(r1)
+    self.genColumns()
 
   def crossProduct(self, firstTable, secondTable):
     for h in firstTable.headerWthTblName:
@@ -66,6 +76,7 @@ class Table:
     for r1 in firstTable.rows:
       for r2 in secondTable.rows:
         self.addRow(r1 + r2)
+    self.genColumns()
 
 def listCSV():
   csvFiles = []

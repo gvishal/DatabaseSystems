@@ -15,6 +15,7 @@ class process:
 
   def __init__(self, procSql, DB):
     self.ops = {'<': op.lt, '<=': op.le, '=': op.eq, '!=': op.ne, '>': op.gt, '>=': op.ge}
+    self.colPrint = []
     self.processFrom(procSql, DB)
     self.processWhere(procSql, DB)
     self.processSelect(procSql, DB)
@@ -73,16 +74,63 @@ class process:
 
   def processSelect(self, procSql, DB):
     if len(procSql.columns) == 1 and procSql.allColumns:
+      self.colPrint = DB[newTableName].headerWthTblName
       return
-    output = []
+    for col in procSql.columns:
+      self.colPrint.append(col)
+      if col.find('(') != -1:
+        DB[newTableName].headerWthTblName.append(col)
+        # Need to add additional cols in every row for given fn
+        colFn = col[ :col.find('(')]
+        col = col[col.find('(')+1:col.find(')')]
+        colIdx = DB[newTableName].headerWthTblName.index(col)
+        
+        if colFn == 'max':
+          maxCol = -1111111111
+          for col in DB[newTableName].columns[colIdx]:
+            maxCol = col if col > maxCol else maxCol
+          DB[newTableName].rows[0].append(maxCol)
+        elif colFn == 'min':
+          minCol = 1111111111
+          for col in DB[newTableName].columns[colIdx]:
+            minCol = col if int(col) < minCol else minCol
+          DB[newTableName].rows[0].append(minCol)
+        elif colFn == 'sum':
+          sumCol = 0
+          for col in DB[newTableName].columns[colIdx]:
+            sumCol += int(col)
+          DB[newTableName].rows[0].append(sumCol)
+        elif colFn == 'avg':
+          avgCol = 0
+          ln = len(DB[newTableName].columns[colIdx])
+          for col in DB[newTableName].columns[colIdx]:
+            avgCol += int(col)
+          DB[newTableName].rows[0].append(avgCol/ln)
+        elif colFn == 'distinct':
+          distinctCols = []
+          for col in DB[newTableName].columns[colIdx]:
+            if col in distinctCols:
+              continue
+            else:
+              distinctCols.append(col)
+          for index, d in enumerate(distinctCols):
+            DB[newTableName].rows[index].append(d)
+    
 
   def printNewTable(self, procSql, DB):
-    col_width = max(len(word) for word in DB[newTableName].headerWthTblName) + 2
+    col_width = max(len(word) for word in self.colPrint) + 2
 
-    print "".join(word.ljust(col_width) for word in DB[newTableName].headerWthTblName)
-
+    print "".join(word.ljust(col_width) for word in self.colPrint)
+    hd = DB[newTableName].headerWthTblName
     for row in DB[newTableName].rows:
-      print "".join(word.ljust(col_width) for word in row)
+      words = []
+      if len(row) < len(hd):
+        break
+      for index, word in enumerate(row):
+        for col in self.colPrint:
+          if index == hd.index(col):
+            words.append(word)
+      print "".join(str(word).ljust(col_width) for word in words)
 
 
 def main():

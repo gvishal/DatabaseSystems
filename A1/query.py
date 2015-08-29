@@ -34,13 +34,24 @@ class Q:
     # Also improve query such as do tablename.colname, remove asterix and do tablename.colname for all
 
   def improveQuery(self):
-    if len(self.tables) == 1:
-      if not self.allColumns:
-        for index,col in enumerate(self.columns):
-          self.columns[index] = self.tables[0] + '.' + col
-          print 'In improveQuery: '
-          print col, self.columns[index]
+    self.improveSelect()
     self.improveWhere()
+
+  def improveSelect(self):
+    for index, col in enumerate(self.columns):
+      colReal = col
+      colFn = ''
+      if col.find('(') != -1:
+        colFn = col[:col.find('(')]
+        colReal = col[col.find('(')+1:col.find(')')]
+
+      if not self.checkColsPresentUnique([colReal], self.tables):
+        print 'Ambigous or absent columns in select clause'
+        sys.exit(0)
+      if colFn:
+        self.columns[index] = colFn + '(' + self.appTblName(self.colInTable(colReal), colReal) + ')'
+      else:
+        self.columns[index] = self.appTblName(self.colInTable(colReal), colReal)
 
   def improveWhere(self):
     if not self.where:
@@ -80,7 +91,7 @@ class Q:
     return True
 
   def checkColsPresentUnique(self, checkCols, tables):
-    # Checks if checkCols are present in the loaded tables
+    # Checks if checkCols[] are present in the loaded tables
     colMap = {}
     for col in checkCols:
       if is_number(col):
@@ -161,6 +172,11 @@ class Q:
       # print item.tokens[1].to_unicode()[1:-1]
       self.aggCol.append(item.tokens[1].to_unicode()[1:-1])
       return
+    if len(item.tokens) == 3:
+      if (item.tokens[0].ttype == sqlparse.tokens.Token.Name and item.tokens[1].value == '.' and
+          item.tokens[2].ttype == sqlparse.tokens.Token.Name):
+        self.columns.append(item.to_unicode())
+        return
 
     for t in item.tokens:
       self.parseSelect(t)
@@ -265,6 +281,10 @@ def main():
           'select * from table1 where x=2 and y=2',
           'select * from table1 where x=2 and y=',
           'select * from table1 where x=2',
+          'select A from table1',
+          'select A,B from table1, table2',
+          'select A,table2.B from table1, table2', #Need to make select parser accept table2.B type queries
+          'select max(A) from table1'
           ]
 
   for i in sql:
