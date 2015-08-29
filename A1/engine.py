@@ -65,6 +65,12 @@ class process:
       col1 = pickCond[0][0]
       col2 = pickCond[0][2]
       op1 = pickCond[0][1]
+
+      # Check if a join condition is present
+      if col1.find('.') != -1 and col2.find('.') != -1:
+        if col1.split('.')[1] == col2.split('.')[1]:
+          procSql.joinPresent = True
+
       hd = DB[newTableName].headerWthTblName
       # print hd
       for row in DB[newTableName].rows:
@@ -89,12 +95,14 @@ class process:
         if colFn == 'max':
           maxCol = -1111111111
           for col in DB[newTableName].columns[colIdx]:
-            maxCol = col if col > maxCol else maxCol
+            # print type(col)
+            maxCol = int(col) if int(col) > maxCol else maxCol
           DB[newTableName].rows[0].append(maxCol)
         elif colFn == 'min':
           minCol = 1111111111
           for col in DB[newTableName].columns[colIdx]:
-            minCol = col if int(col) < minCol else minCol
+            # print col
+            minCol = int(col) if int(col) < minCol else minCol
           DB[newTableName].rows[0].append(minCol)
         elif colFn == 'sum':
           sumCol = 0
@@ -155,18 +163,67 @@ def test():
           'select A,table2.B from table1, table2', #Need to make select parser accept table2.B type queries
           'select max(A) from table1'
           ]
-  for i in sql:
+  sqlSelected = ['select * from table1',
+                  'select * from table2',
+                  'select * from table1,table2',
+                  'select* from table1',
+                  'select*from table1',
+                  'select* fromtable1',
+                  'select sum(A) from table1',
+                  'select sum(A) from table1, table2',
+                  'select sum(B) from table1, table2',
+                  'select avg(A) from table1',
+                  'select min(A) from table',
+                  'select max(A) from table1',
+                  'select min(A) from table1',
+                  'select distinct(A) from table1',
+                  'select distinct(B) from table1, table2',
+                  'select distinct(table1.B) from table1, table2',
+                  'select A,B from table1',
+                  'select A, table2.B from table1, table2',
+                  'select distinct(A), B from table1',
+                  'select distinct(table2.B), table2.B from table1, table2',
+                  'select * from table1 where A = 922',
+                  'select A from table1 where B = 158',
+                  'select A from table1, table2 where B = 158',
+                  'select A from table1, table2 where table2.B = 158',
+                  'select A from table1, table2 where B = 158 and C = 5727',
+                  'select A from table1, table2 where table2.B = 158 and C = 5727',
+                  'select A from table1, table2 where B = 158 or C = 5727',
+                  'select A from table1, table2 where table2.B = 158 or C = 5727',
+                  'select * from table1, table2 where table1.B=table2.B;',
+                    #common row should be outputed only once.
+                  'select table1.A, table2.B from table1,table2 where table1.B=table2.B;'
+                ]
+  tests = sqlSelected
+  totalTests = len(tests)
+  testsFail = []
+  testsExit = []
+  for i in tests:
     print 
     try:
       print i
       q = query.Q(i)
-      print q.__dict__
+      # print q.__dict__
       DB = table.initializeTables()
       DB['new-table'] = table.Table(name='new-table')
       pr = process(q, DB)
     except SystemExit as e:
+      testsExit.append(i)
       print 'sys.exit called'
       pass
+    # except:
+    #   print sys.exc_type, sys.exc_value, sys.exc_traceback.__dict__
+    #   testsFail.append(i)
+  print
+  print 'Total Tests: ', totalTests
+  print 'Tests Pass:', totalTests - len(testsFail)
+  print
+  print 'Tests Exited:', len(testsExit)
+  print '\n'.join([i for i in testsExit])
+  print
+  print 'Tests Fail:', len(testsFail)
+  print '\n'.join([i for i in testsFail])
 
 def main():
   # print sys.argv
@@ -181,7 +238,7 @@ def main():
   sql = sys.argv[1]
   # print 'Youre sql is:', sql
   procSql = query.Q(sql)
-  print procSql.__dict__
+  # print procSql.__dict__
   DB = table.initializeTables()
   DB['new-table'] = table.Table(name='new-table')
   # print DB

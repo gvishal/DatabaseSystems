@@ -11,6 +11,7 @@ class Q:
     self.tables = []
     self.where = False
     self.twoWhere = False
+    self.joinPresent = False
     self.andConditions = []
     self.orConditions = []
     self.tempConditions = []
@@ -27,8 +28,9 @@ class Q:
       print 'Parse error occurred.'
       sys.exit(0)
     self.stmt = parsed[0]
-    self.parseQuery()
     self.checkQuery()
+    self.parseQuery()
+    self.checkParsedQuery()
     # Check if table is present in DB
     self.improveQuery()
     # Also improve query such as do tablename.colname, remove asterix and do tablename.colname for all
@@ -60,23 +62,29 @@ class Q:
     if not self.where:
       return
     
+    pickCond = ''
+    if len(self.andConditions) > 0:
+      pickCond = self.andConditions
+    elif len(self.orConditions) > 0:
+      pickCond = self.orConditions
+
     # If only one where condition
-    if not self.checkColsPresentUnique([self.andConditions[0][0], self.andConditions[0][2]], self.tables):
+    if not self.checkColsPresentUnique([pickCond[0][0], pickCond[0][2]], self.tables):
       print 'Ambigous or absent columns in where clause'
       sys.exit(0)
-    if not is_number(self.andConditions[0][0]):
-      self.andConditions[0][0] = self.appTblName(self.colInTable(self.andConditions[0][0]), self.andConditions[0][0])
-    if not is_number(self.andConditions[0][2]):
-      self.andConditions[0][2] = self.appTblName(self.colInTable(self.andConditions[0][2]), self.andConditions[0][2])
+    if not is_number(pickCond[0][0]):
+      pickCond[0][0] = self.appTblName(self.colInTable(pickCond[0][0]), pickCond[0][0])
+    if not is_number(pickCond[0][2]):
+      pickCond[0][2] = self.appTblName(self.colInTable(pickCond[0][2]), pickCond[0][2])
 
     if self.twoWhere:
-      if not self.checkColsPresentUnique([self.andConditions[1][0], self.andConditions[1][2]], self.tables):
+      if not self.checkColsPresentUnique([pickCond[1][0], pickCond[1][2]], self.tables):
         print 'Ambigous or absent columns in where clause'
         sys.exit(0)
-      if not is_number(self.andConditions[1][0]):
-        self.andConditions[1][0] = self.appTblName(self.colInTable(self.andConditions[1][0]), self.andConditions[1][0])
-      if not is_number(self.andConditions[1][2]):
-        self.andConditions[1][2] = self.appTblName(self.colInTable(self.andConditions[1][2]), self.andConditions[1][2])
+      if not is_number(pickCond[1][0]):
+        pickCond[1][0] = self.appTblName(self.colInTable(pickCond[1][0]), pickCond[1][0])
+      if not is_number(pickCond[1][2]):
+        pickCond[1][2] = self.appTblName(self.colInTable(pickCond[1][2]), pickCond[1][2])
 
 
   def colInTable(self, colName):
@@ -88,6 +96,8 @@ class Q:
     sys.exit(0)
 
   def tablesPresent(self):
+    if len(self.tables) == 0:
+      return False
     for table in self.tables:
       if table not in self.DB:
         return False
@@ -118,6 +128,11 @@ class Q:
       dest = tableName + '.' + dest
     return dest
 
+  def checkParsedQuery(self):
+    if not self.tablesPresent():
+      print 'Table not present'
+      sys.exit(0)
+
   def checkQuery(self):
     if self.stmt.token_first().value != 'select':
       print 'Invalid sql'
@@ -126,12 +141,6 @@ class Q:
     if not self.checkValidWhitespace():
       print 'Invalid sql'
       sys.exit(0)
-
-    if not self.tablesPresent():
-      print 'Table not present'
-      sys.exit(0)
-
-    # print 'Sql valid'
 
   def checkValidWhitespace(self):
       for i in range(0, len(self.stmt.tokens)):
@@ -191,6 +200,8 @@ class Q:
     if item.ttype == sqlparse.tokens.Token.Punctuation:
       return
     if item.ttype == sqlparse.tokens.Token.Text.Whitespace:
+      return
+    if item.ttype == sqlparse.tokens.Token.Keyword:
       return
     if len(item.tokens) == 1:
       self.tables.append(item.value)
