@@ -41,6 +41,9 @@ class Q:
     for index, col in enumerate(self.columns):
       colReal = col
       colFn = ''
+      if col == '*':
+        continue
+
       if col.find('(') != -1:
         colFn = col[:col.find('(')]
         colReal = col[col.find('(')+1:col.find(')')]
@@ -96,6 +99,8 @@ class Q:
     for col in checkCols:
       if is_number(col):
         continue
+      # if col == '*':
+      #   continue
       colMap[col] = 0
     for col in colMap:
       for table in tables:
@@ -232,8 +237,8 @@ class Q:
     if len(self.tempConditions) not in [3, 7]:
       # No need to exit
       self.where = False
-      return
-      print 'No where condition specified'
+      # return
+      print 'Invalid where conditions'
       sys.exit(0)
     andOr = False
     if len(self.tempConditions) > 3:
