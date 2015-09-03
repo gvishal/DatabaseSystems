@@ -5,6 +5,8 @@ import table
 
 class Q:
   def __init__(self, query):
+    while query[-1] in [' ', ';']:
+      query = query[:-1]
     self.query = query
     self.columns = []
     self.allColumns = False
@@ -134,6 +136,7 @@ class Q:
       sys.exit(0)
 
   def checkQuery(self):
+
     if self.stmt.token_first().value != 'select':
       print 'Invalid sql'
       sys.exit(0)
@@ -145,14 +148,17 @@ class Q:
   def checkValidWhitespace(self):
       for i in range(0, len(self.stmt.tokens)):
         if i%2:
+          # print self.stmt.tokens[i] 
+          if self.stmt.tokens[i] == ';':
+            continue
           if not (self.stmt.tokens[i].is_whitespace()):
             print 'Invalid sql'
             return False
       return True
 
   def parseQuery(self):
-    # print len(self.stmt.tokens)
-    if len(self.stmt.tokens) < 3:
+    print len(self.stmt.tokens)
+    if len(self.stmt.tokens) < 7:
       print 'Invalid sql'
       sys.exit(0)
     self.parseSelect(self.stmt.tokens[2])

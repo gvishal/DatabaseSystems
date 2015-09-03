@@ -52,6 +52,15 @@ class process:
       col4 = pickCond[1][2]
       op1 = pickCond[0][1]
       op2 = pickCond[1][1]
+
+      # Check if a join condition is present
+      if col1.find('.') != -1 and col2.find('.') != -1:
+        if col1.split('.')[1] == col2.split('.')[1]:
+          procSql.joinPresent = True
+      if col3.find('.') != -1 and col4.find('.') != -1:
+        if col3.split('.')[1] == col4.split('.')[1]:
+          procSql.joinPresent = True
+
       hd = DB[newTableName].headerWthTblName
       for row in DB[newTableName].rows:
         if ( (self.ops[op1](row[hd.index(col1)], col2 if query.is_number(col2) else row[hd.index(col2)])) and
@@ -193,7 +202,10 @@ def test():
                   'select A from table1, table2 where table2.B = 158 or C = 5727',
                   'select * from table1, table2 where table1.B=table2.B;',
                     #common row should be outputed only once.
-                  'select table1.A, table2.B from table1,table2 where table1.B=table2.B;'
+                  'select table1.A, table2.B from table1,table2 where table1.B=table2.B;',
+                  'select * from table1;',
+                  'select * from table1; ',
+                  'select * from table1;     '
                 ]
   tests = sqlSelected
   totalTests = len(tests)
@@ -236,6 +248,8 @@ def main():
     sys.exit(0)
 
   sql = sys.argv[1]
+  while sql[-1] in [' ', ';']:
+    sql = sql[:-1]
   # print 'Youre sql is:', sql
   procSql = query.Q(sql)
   # print procSql.__dict__
