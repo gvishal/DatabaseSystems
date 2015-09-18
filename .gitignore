@@ -2,6 +2,18 @@
 __pycache__/
 *.py[cod]
 
+*input*
+*output*
+temp/
+1
+2
+3
+4
+gensort*
+valsort
+
+*.zip
+
 # C extensions
 *.so
 

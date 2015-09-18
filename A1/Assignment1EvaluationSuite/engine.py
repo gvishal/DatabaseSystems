@@ -40,8 +40,10 @@ class process:
     if procSql.twoWhere:
       # Two conditionals
       pickCond = ''
+      andToBeDone = False
       if len(procSql.andConditions) > 0:
         pickCond = procSql.andConditions
+        andToBeDone = True
       elif len(procSql.orConditions) > 0:
         pickCond = procSql.orConditions
 
@@ -62,10 +64,16 @@ class process:
           procSql.joinPresent = True
 
       hd = DB[newTableName].headerWthTblName
-      for row in DB[newTableName].rows:
-        if ( (self.ops[op1](row[hd.index(col1)], col2 if query.is_number(col2) else row[hd.index(col2)])) and
-              (self.ops[op2](row[hd.index(col3)], col4 if query.is_number(col4) else row[hd.index(col4)])) ):
-          newRows.append(row)
+      if andToBeDone:
+        for row in DB[newTableName].rows:
+          if ( (self.ops[op1](row[hd.index(col1)], col2 if query.is_number(col2) else row[hd.index(col2)])) and
+                (self.ops[op2](row[hd.index(col3)], col4 if query.is_number(col4) else row[hd.index(col4)])) ):
+            newRows.append(row)
+      else :
+        for row in DB[newTableName].rows:
+          if ( (self.ops[op1](row[hd.index(col1)], col2 if query.is_number(col2) else row[hd.index(col2)])) or
+                (self.ops[op2](row[hd.index(col3)], col4 if query.is_number(col4) else row[hd.index(col4)])) ):
+            newRows.append(row)
       DB[newTableName].rows = newRows
     else:
       # Only one conditional, present in andConditions
@@ -207,7 +215,23 @@ def test():
                   'select * from table1; ',
                   'select * from table1;     '
                 ]
-  tests = sqlSelected
+  evaluation = ['select * from table1',
+                'select max(A) from table1',
+                'select min(B) from table1',
+                'select avg(C) from table1',
+                'select sum(D) from table2',
+                'select A from table1',
+                'select A,D from table1,table2',
+                'select distinct(C) from table3',
+                'select B,C from table1 where A=-900',
+                'select A,B from table1 where A=775 OR B=803',
+                'select A,B from table1 where A=922 OR B=158;',
+                'select * from table1,table2 where table1.B=table2.B',
+                'select A,D from table1,table2 where table1.B=table2.B',
+                'Select A from table4;',
+                'Select Z from table1;'
+              ]
+  tests = evaluation
   totalTests = len(tests)
   testsFail = []
   testsExit = []
@@ -248,9 +272,11 @@ def main():
     sys.exit(0)
 
   sql = sys.argv[1]
+  while sql[-1] in [' ', ';']:
+    sql = sql[:-1]
   # print 'Youre sql is:', sql
   procSql = query.Q(sql)
-  # print procSql.__dict__
+  print procSql.__dict__
   DB = table.initializeTables()
   DB['new-table'] = table.Table(name='new-table')
   # print DB
