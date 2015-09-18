@@ -21,44 +21,26 @@ typedef long long ll;
 //loops
 #define REP(i,a,b) \
     for(int i = int(a);i <= int(b);i++)
-#define TRvi(c,it) \
-    for(vi::iterator it=(c).begin();it!=(c).end();it++)
-#define MEMSET_INF 127 //2bill
-#define MEMSET_HALF_INF 63 //1bill
 
-#ifdef DEBUG
-    #define debug(args...) {dbg,args; cerr<<endl;}
-    #define _
-    #define OUT(A,a,b) for(int zi = a;zi <= int(b); zi++)cout<<A[zi]<<space;cout<<endl;
-#else
-    #define debug(args...)  // Just strip off all debug tokens
-    #define _ ios_base::sync_with_stdio(false);cin.tie(0);
-    #define OUT(A,a,b)
-#endif 
-struct debugger
-{
-    template<typename T> debugger& operator , (const T& v)
-    {    
-        cerr<<v<<" ";    
-        return *this;    
-    }
-} dbg;
 
 int order = 0;// 0 for asc
 int recordLength;
+int noRecords;
 
 map<string, int> colSize;
 vector<int> sortOrder;
 
-vector<int> recordsPresentBlock(200000, 0); //no of records present in block.
+vector<int> recordsPresentBlock(1000, 0); //no of records present in block.
 // Track last record read into memory
-vector<int> currentRecordBlock(200000, 0); //current record on in block.
+vector<int> currentRecordBlock(1000, 0); //current record on in block.
 
 //Actual block vector to be used for loading blocks. Its size is limited by file size.
 vector<vector<string> >  block; 
 vii blockStatus; //Keep starting and ending status of each block
 vi blockStatusCurrent; //Keep current position in miniblock
-bool blockOver[200000] = {0};
+bool blockOver[1000] = {0};
+
+ofstream finalOutput;
 
 int read_metadata(){
     string line;
@@ -164,7 +146,7 @@ int main(int argc, char *argv[]){
 
     getline(IN, line);
     recordLength = (int)line.length();
-    int noRecords = 1;
+    noRecords = 1;
 
     while(getline(IN, line)){
         noRecords++;
@@ -211,13 +193,18 @@ int main(int argc, char *argv[]){
         blockStatusCurrent[i] = i*recordsMiniBlock;
     }
     // Merge the indivisual blocks
+    finalOutput.open(argv[2]);
+
     mergeBlocks(noBlocks);
+
+    finalOutput.close();
 
     return 0;
 }
 
 priority_queue<pair<vector<string>, int>, vector<pair<vector<string>, int> >, greater<pair<vector<string>, int> > > ascending;
 priority_queue<pair<vector<string>,int>,vector<pair<vector<string>,int> > > descending;
+// priority_queue<pair<vector<string>,int>,vector<pair<vector<string>,int> > > *pq[2];
 
 void loadBlock(int n){
     // Load ith block from next record onwards
@@ -233,10 +220,15 @@ void loadBlock(int n){
     int end = blockStatus[n].second;
     blockStatus[n].second = start;
     REP(i, start, end){
-        if(!getline(in, line)){
+        if(currentRecordBlock[n] == recordsPresentBlock[n]){
             blockOver[n] = true;
             break;
         }
+        getline(in, line);
+        // if(!getline(in, line)){
+        //     blockOver[n] = true;
+        //     break;
+        // }
         vector<string> tokens;
         string token;
         istringstream iss(line);
@@ -245,8 +237,88 @@ void loadBlock(int n){
         currentRecordBlock[n]++;
         blockStatus[n].second++;
     }
+    blockStatusCurrent[n] = start;
+}
+
+
+void storeBlock(){
+    // Write 0th miniblock into finalOutput
+    int start = blockStatus[0].first;
+    int end = blockStatus[0].second;
+
+    if(blockStatusCurrent[0] < end)
+        end = blockStatusCurrent[0];
+
+    string line;
+    REP(i, start, end){
+        for(auto j:block[i]){
+            line.append(j);
+            if(j != block[i][block[i].size()-1])
+                line.append(" ");
+        }
+        finalOutput << line << endl;
+    }
+    // Block is clear, so reset it.
+    blockStatusCurrent[0] = start;
+}
+
+void loadPQ(int noBlocks){
+    if(order == 0){
+        auto pq = ascending;
+        REP(i, 1, noBlocks){
+            pq.push({block[blockStatusCurrent[i]++], i});
+        }
+    } else {
+        auto pq = descending;
+        REP(i, 1, noBlocks){
+            pq.push({block[blockStatusCurrent[i]++], i});
+        }
+    }
+    
+    return;
+}
+
+void extractRecord(){
+    if(order == 0){
+        auto pq = ascending;
+        // Check if outBlock is full or not
+        
+        REP(i, 1, noRecords){
+            if(blockStatusCurrent[0] > blockStatus[0].second){
+                storeBlock();
+            }
+
+            int outBlockPos = blockStatusCurrent[0]++;
+            if(!pq.empty()){
+                // Extract from queue
+                pair<vector<string>, int> p = pq.top();
+                block[outBlockPos] = p.first;
+                pq.pop();
+
+                // Load a record into queue from p.second miniblock
+                if(!blockOver[p.second]){
+                    // Check if miniblock is not over, if over load it from file
+                    if(blockStatusCurrent[p.second] > blockStatus[p.second].second){
+                        loadBlock(p.second);
+                    }
+                    pq.push({block[blockStatusCurrent[p.second]++], p.second});
+                }
+            }
+        }
+    } else {
+        auto pq = descending;
+    }
 }
 
 void mergeBlocks(int noBlocks){
+
+    REP(i, 1, noBlocks){
+        loadBlock(i);
+    }
+
+    loadPQ(noBlocks);
+
+    extractRecord();
+
     return;
 }

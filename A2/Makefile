@@ -10,4 +10,4 @@ test: module1
 	./module1 input1.txt output.txt 1 asc c0 c1
 
 clean:
-	-rm 1;
+	-rm module1 1;
