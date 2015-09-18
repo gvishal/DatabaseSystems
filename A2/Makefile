@@ -7,7 +7,7 @@ module1: external-merge-sort.cpp
 
 test: module1
 	@echo "Running Syntax analyser on given program....";
-	./module1 input1.txt output.txt 1 asc c0 c1
+	./module1 input.txt output.txt 1 asc c0 c1
 
 clean:
 	-rm module1 1;

@@ -32,7 +32,7 @@ vector<int> sortOrder;
 
 vector<int> recordsPresentBlock(1000, 0); //no of records present in block.
 // Track last record read into memory
-vector<int> currentRecordBlock(1000, 0); //current record on in block.
+vector<int> currentRecordReadBlock(1000, 0); //current record on in block.
 
 //Actual block vector to be used for loading blocks. Its size is limited by file size.
 vector<vector<string> >  block; 
@@ -145,12 +145,16 @@ int main(int argc, char *argv[]){
     ifstream IN(argv[1]);
 
     getline(IN, line);
+    cout<<line<<endl;
     recordLength = (int)line.length();
     noRecords = 1;
 
     while(getline(IN, line)){
         noRecords++;
     }
+
+    cout << "Record length and no of records: " << recordLength << space << noRecords << endl;
+
     IN.clear();                 // clear fail and eof bits
     IN.seekg(0);
 
@@ -209,7 +213,7 @@ priority_queue<pair<vector<string>,int>,vector<pair<vector<string>,int> > > desc
 void loadBlock(int n){
     // Load ith block from next record onwards
     ifstream in(to_string(n));
-    int currentRecord = currentRecordBlock[n] + 1;
+    int currentRecord = currentRecordReadBlock[n] + 1;
     if(currentRecord > recordsPresentBlock[n]){
         cout<<"Block over\n";
         return;
@@ -220,7 +224,7 @@ void loadBlock(int n){
     int end = blockStatus[n].second;
     blockStatus[n].second = start;
     REP(i, start, end){
-        if(currentRecordBlock[n] == recordsPresentBlock[n]){
+        if(currentRecordReadBlock[n] == recordsPresentBlock[n]){
             blockOver[n] = true;
             break;
         }
@@ -234,7 +238,9 @@ void loadBlock(int n){
         istringstream iss(line);
         while(iss >> token)tokens.pb(token);
         block[i] = tokens;
-        currentRecordBlock[n]++;
+        // for(auto k: block[i])
+        //     cout<<k<<space;
+        currentRecordReadBlock[n]++;
         blockStatus[n].second++;
     }
     blockStatusCurrent[n] = start;
@@ -249,13 +255,14 @@ void storeBlock(){
     if(blockStatusCurrent[0] < end)
         end = blockStatusCurrent[0];
 
-    string line;
     REP(i, start, end){
+        string line;
         for(auto j:block[i]){
             line.append(j);
             if(j != block[i][block[i].size()-1])
                 line.append(" ");
         }
+        // cout<<line<<endl;
         finalOutput << line << endl;
     }
     // Block is clear, so reset it.
@@ -264,14 +271,15 @@ void storeBlock(){
 
 void loadPQ(int noBlocks){
     if(order == 0){
-        auto pq = ascending;
+        auto *pq = &ascending;
         REP(i, 1, noBlocks){
-            pq.push({block[blockStatusCurrent[i]++], i});
+            (*pq).push({block[blockStatusCurrent[i]++], i});
+            // cout<<i<<"push :"<<(*pq).empty()<<endl;
         }
     } else {
-        auto pq = descending;
+        auto *pq = &descending;
         REP(i, 1, noBlocks){
-            pq.push({block[blockStatusCurrent[i]++], i});
+            (*pq).push({block[blockStatusCurrent[i]++], i});
         }
     }
     
@@ -280,33 +288,36 @@ void loadPQ(int noBlocks){
 
 void extractRecord(){
     if(order == 0){
-        auto pq = ascending;
+        auto *pq = &ascending;
         // Check if outBlock is full or not
         
         REP(i, 1, noRecords){
             if(blockStatusCurrent[0] > blockStatus[0].second){
+                cout << i << "Storing output block into file" << endl;
                 storeBlock();
             }
 
             int outBlockPos = blockStatusCurrent[0]++;
-            if(!pq.empty()){
+            // cout << i << "Into if"<< (*pq).empty() << endl;
+            if(!(*pq).empty()){
                 // Extract from queue
-                pair<vector<string>, int> p = pq.top();
+                // cout<<i<<"Here"<<endl;
+                pair<vector<string>, int> p = (*pq).top();
                 block[outBlockPos] = p.first;
-                pq.pop();
-
+                (*pq).pop();
+                // cout<<p.first[0]<<endl;
                 // Load a record into queue from p.second miniblock
                 if(!blockOver[p.second]){
                     // Check if miniblock is not over, if over load it from file
                     if(blockStatusCurrent[p.second] > blockStatus[p.second].second){
                         loadBlock(p.second);
                     }
-                    pq.push({block[blockStatusCurrent[p.second]++], p.second});
+                    (*pq).push({block[blockStatusCurrent[p.second]++], p.second});
                 }
             }
         }
     } else {
-        auto pq = descending;
+        auto *pq = &descending;
     }
 }
 
@@ -317,7 +328,7 @@ void mergeBlocks(int noBlocks){
     }
 
     loadPQ(noBlocks);
-
+    // cout<<ascending.empty()<<space<<descending.empty()<<endl;
     extractRecord();
 
     return;
