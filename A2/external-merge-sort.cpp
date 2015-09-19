@@ -168,7 +168,7 @@ int main(int argc, char *argv[]){
     ifstream IN(argv[1]);
 
     getline(IN, line);
-    cout<<line<<endl;
+    // cout<<line<<endl;
     recordLength = (int)line.length();
     noRecords = 1;
 
@@ -246,9 +246,9 @@ int loadBlock(int n){
         blockOver[n] = true;
         return 1;
     }
-    debug("in.tellg() Before seekg", in.tellg());
+    // debug("in.tellg() Before seekg", in.tellg());
     in.seekg((currentRecordToRead-1) * (recordLength+1));
-    debug("in.tellg() After seekg", in.tellg());
+    // debug("in.tellg() After seekg", in.tellg());
     string line;
     int start = blockStatus[n].first;
     int end = blockStatus[n].second;
@@ -350,10 +350,10 @@ void extractRecord(int noBlocks){
                 pair<vector<string>, int> p = (*pq).top();
                 block[outBlockPos] = p.first;
                 (*pq).pop();
-                debug("Top of priority_queue: ", p.first[0], p.first[1], p.first[2])
+                // debug("Top of priority_queue: ", p.first[0], p.first[1], p.first[2])
                 // Load a record into queue from p.second miniblock
-                debug("Current popped block info: p.second, blockOver[p.second], blockStatusCurrent[p.second], \
-                    blockStatus[p.second].second", p.second, blockOver[p.second], blockStatusCurrent[p.second],
+                // debug("Current popped block info: p.second, blockOver[p.second], blockStatusCurrent[p.second], \
+                    blockStatus[p.second].second", p.second, blockOver[p.second], blockStatusCurrent[p.second], \
                     blockStatus[p.second].second)
                 if(!blockOver[p.second]){
                     // Check if miniblock is not over, if over load it from file
@@ -364,8 +364,8 @@ void extractRecord(int noBlocks){
                             continue;
                         }
                     }
-                    debug("Push element: p.second, blockStatusCurrent[p.second], block[blockStatusCurrent[p.second]]",
-                        p.second, blockStatusCurrent[p.second], block[blockStatusCurrent[p.second]][0], 
+                    // debug("Push element: p.second, blockStatusCurrent[p.second], block[blockStatusCurrent[p.second]]", \
+                        p.second, blockStatusCurrent[p.second], block[blockStatusCurrent[p.second]][0], \
                         block[blockStatusCurrent[p.second]][1], block[blockStatusCurrent[p.second]][2] )
                     (*pq).push({block[blockStatusCurrent[p.second]++], p.second});
                 } else {
@@ -402,10 +402,10 @@ void extractRecord(int noBlocks){
                 pair<vector<string>, int> p = (*pq).top();
                 block[outBlockPos] = p.first;
                 (*pq).pop();
-                debug("Top of priority_queue: ", p.first[0], p.first[1], p.first[2])
+                // debug("Top of priority_queue: ", p.first[0], p.first[1], p.first[2])
                 // Load a record into queue from p.second miniblock
-                debug("Current popped block info: p.second, blockOver[p.second], blockStatusCurrent[p.second], \
-                    blockStatus[p.second].second", p.second, blockOver[p.second], blockStatusCurrent[p.second],
+                // debug("Current popped block info: p.second, blockOver[p.second], blockStatusCurrent[p.second], \
+                    blockStatus[p.second].second", p.second, blockOver[p.second], blockStatusCurrent[p.second], \
                     blockStatus[p.second].second)
                 if(!blockOver[p.second]){
                     // Check if miniblock is not over, if over load it from file
@@ -416,8 +416,8 @@ void extractRecord(int noBlocks){
                             continue;
                         }
                     }
-                    debug("Push element: p.second, blockStatusCurrent[p.second], block[blockStatusCurrent[p.second]]",
-                        p.second, blockStatusCurrent[p.second], block[blockStatusCurrent[p.second]][0], 
+                    // debug("Push element: p.second, blockStatusCurrent[p.second], block[blockStatusCurrent[p.second]]", \
+                        p.second, blockStatusCurrent[p.second], block[blockStatusCurrent[p.second]][0], \
                         block[blockStatusCurrent[p.second]][1], block[blockStatusCurrent[p.second]][2] )
                     (*pq).push({block[blockStatusCurrent[p.second]++], p.second});
                 } else {
@@ -464,12 +464,12 @@ void printTrace(int noBlocks){
         debug("blockOver: ", blockOver[i])
     }
     debug("Main Block data: ");
-    string line;
-    for(auto i:block){
-        for(auto j:i){
-            line.append(j + " ");
-        }
-        debug(line)
-    }
+    // string line;
+    // for(auto i:block){
+    //     for(auto j:i){
+    //         line.append(j + " ");
+    //     }
+    //     debug(line)
+    // }
     return;
 }

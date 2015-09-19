@@ -5,6 +5,7 @@ __pycache__/
 db_assign2
 module1
 external-merge-sort
+external-merge-sort-debug
 debuginfo
 *input*
 *output*
