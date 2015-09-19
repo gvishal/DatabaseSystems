@@ -31,7 +31,7 @@ typedef long long ll;
     #define _
     #define OUT(A,a,b) for(int zi = a;zi <= int(b); zi++)cout<<A[zi]<<space;cout<<endl;
 #else
-    #define debug(args...)  // Just strip off all debug tokens
+    #define debug(args...) ; // Just strip off all debug tokens
     #define _ ios_base::sync_with_stdio(false);cin.tie(0);
     #define OUT(A,a,b)
 #endif 
@@ -234,7 +234,7 @@ int main(int argc, char *argv[]){
 }
 
 priority_queue<pair<vector<string>, int>, vector<pair<vector<string>, int> >, greater<pair<vector<string>, int> > > ascending;
-priority_queue<pair<vector<string>,int>,vector<pair<vector<string>,int> > > descending;
+priority_queue<pair<vector<string>,int>,vector<pair<vector<string>,int> >, less<pair<vector<string>, int> > > descending;
 // priority_queue<pair<vector<string>,int>,vector<pair<vector<string>,int> > > *pq[2];
 
 int loadBlock(int n){
@@ -397,6 +397,8 @@ void mergeBlocks(int noBlocks){
         loadBlock(i);
     }
 
+    void *pq[] = {&ascending, &descending};
+
     loadPQ(noBlocks);
     // cout<<ascending.empty()<<space<<descending.empty()<<endl;
     extractRecord(noBlocks);
@@ -414,11 +416,12 @@ void printTrace(int noBlocks){
         debug("blockOver: ", blockOver[i])
     }
     debug("Main Block data: ");
+    string line;
     for(auto i:block){
         for(auto j:i){
-            cout<<j<<space;
+            line.append(j + " ");
         }
-        cout<<endl;
+        debug(line)
     }
     return;
 }

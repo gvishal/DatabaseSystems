@@ -2,6 +2,10 @@
 __pycache__/
 *.py[cod]
 
+db_assign2
+module1
+external-merge-sort
+debuginfo
 *input*
 *output*
 temp/
