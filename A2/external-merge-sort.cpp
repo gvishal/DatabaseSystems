@@ -302,8 +302,8 @@ void storeBlock(){
                 line.append(" ");
         }
         // cout<<line<<endl;
-        if(i == start)debug("First output record: ", line);
-        if(i == end)debug("Last output record: ", line);
+        if(i == start){debug("First output record: ", line);}
+        if(i == end){debug("Last output record: ", line);}
         finalOutput << line << endl;
     }
     // Block is clear, so reset it.
@@ -388,6 +388,56 @@ void extractRecord(int noBlocks){
         printTrace(noBlocks);
     } else {
         auto *pq = &descending;
+        REP(i, 1, noRecords){
+            if(blockStatusCurrent[0] > blockStatus[0].second){
+                cout << "Storing output block into file at record: " << i << endl;
+                storeBlock();
+            }
+
+            // cout << i << "Into if"<< (*pq).empty() << endl;
+            if(!(*pq).empty()){
+                int outBlockPos = blockStatusCurrent[0]++;
+                // Extract from queue
+                // cout<<i<<"Here"<<endl;
+                pair<vector<string>, int> p = (*pq).top();
+                block[outBlockPos] = p.first;
+                (*pq).pop();
+                debug("Top of priority_queue: ", p.first[0], p.first[1], p.first[2])
+                // Load a record into queue from p.second miniblock
+                debug("Current popped block info: p.second, blockOver[p.second], blockStatusCurrent[p.second], \
+                    blockStatus[p.second].second", p.second, blockOver[p.second], blockStatusCurrent[p.second],
+                    blockStatus[p.second].second)
+                if(!blockOver[p.second]){
+                    // Check if miniblock is not over, if over load it from file
+                    if(blockStatusCurrent[p.second] > blockStatus[p.second].second){
+                        debug("Load block: p.second", p.second)
+                        if(loadBlock(p.second)){
+                            // Block over, move on!
+                            continue;
+                        }
+                    }
+                    debug("Push element: p.second, blockStatusCurrent[p.second], block[blockStatusCurrent[p.second]]",
+                        p.second, blockStatusCurrent[p.second], block[blockStatusCurrent[p.second]][0], 
+                        block[blockStatusCurrent[p.second]][1], block[blockStatusCurrent[p.second]][2] )
+                    (*pq).push({block[blockStatusCurrent[p.second]++], p.second});
+                } else {
+                    debug("Block over: p.second, i, noBlocks", p.second, i, noBlocks)
+                }
+            } else {
+                debug("Record: i, noRecords ", i, noRecords);
+                debug("Pq empty, shouldn't have happened");
+                storeBlock();
+                debug("Trace of blocks: ");
+                printTrace(noBlocks);
+                exit(1);
+            }
+        }
+        
+        debug("Record: i, noRecords ", noRecords);
+        debug("Pq empty, ");
+        storeBlock();
+        debug("Trace of blocks: ");
+        printTrace(noBlocks);
     }
 }
 
@@ -396,8 +446,6 @@ void mergeBlocks(int noBlocks){
     REP(i, 1, noBlocks){
         loadBlock(i);
     }
-
-    void *pq[] = {&ascending, &descending};
 
     loadPQ(noBlocks);
     // cout<<ascending.empty()<<space<<descending.empty()<<endl;
