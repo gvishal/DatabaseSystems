@@ -21,13 +21,35 @@ typedef long long ll;
 //loops
 #define REP(i,a,b) \
     for(int i = int(a);i <= int(b);i++)
+#define TRvi(c,it) \
+    for(vi::iterator it=(c).begin();it!=(c).end();it++)
+#define MEMSET_INF 127 //2bill
+#define MEMSET_HALF_INF 63 //1bill
 
+#ifdef DEBUG
+    #define debug(args...) {dbg,args; cerr<<endl;}
+    #define _
+    #define OUT(A,a,b) for(int zi = a;zi <= int(b); zi++)cout<<A[zi]<<space;cout<<endl;
+#else
+    #define debug(args...)  // Just strip off all debug tokens
+    #define _ ios_base::sync_with_stdio(false);cin.tie(0);
+    #define OUT(A,a,b)
+#endif 
+struct debugger
+{
+    template<typename T> debugger& operator , (const T& v)
+    {    
+        cerr<<v<<" ";    
+        return *this;    
+    }
+} dbg;
 
 int order = 0;// 0 for asc
 int recordLength;
 int noRecords;
 
 map<string, int> colSize;
+map<string, int> colName;
 vector<int> sortOrder;
 
 vector<int> recordsPresentBlock(1000, 0); //no of records present in block.
@@ -52,13 +74,14 @@ int read_metadata(){
     }
     // Read metadata
     string col;
-    int size;
+    int size, colNo = 0;
 
     while(getline(meta, line)){
         string delimit = ",";
         col = line.substr(0, line.find(delimit));
         size = atoi(line.substr(line.find(delimit)+1).c_str());
         colSize[col] = size;
+        colName[col] = colNo++;
     }
     return 0;
 }
@@ -133,12 +156,12 @@ int main(int argc, char *argv[]){
         return -1;
     }
 
-    REP(i, 5, argc-1){
-        sortOrder.pb(argv[i][1]-'0');
-    }
-
     if(read_metadata()){
         cout<<"Unable to read metadata\n";
+    }
+
+    REP(i, 5, argc-1){
+        sortOrder.pb(colName[argv[i]]);  
     }
 
     string line;
@@ -182,15 +205,19 @@ int main(int argc, char *argv[]){
         out.close();
     }
 
+    cout << "Blocks separated into files" << endl;
     // sorted the indivisual blocks.
     REP(i, 1, noBlocks){
         sortBlock(i);
     }
 
+    cout << "indivisual block sorted and written into file" << endl; 
+
     block.resize(recordsBlock+5);
     blockStatus.resize(recordsBlock+5);
     blockStatusCurrent.resize(recordsBlock+5);
     int recordsMiniBlock = recordsBlock / (noBlocks + 1); // 1 additional for output
+    cout << "records miniblocks: " << recordsMiniBlock << endl;
     REP(i, 0, noBlocks){
         blockStatus[i].first = i*recordsMiniBlock;
         blockStatus[i].second = (i+1)*recordsMiniBlock - 1;
@@ -210,25 +237,32 @@ priority_queue<pair<vector<string>, int>, vector<pair<vector<string>, int> >, gr
 priority_queue<pair<vector<string>,int>,vector<pair<vector<string>,int> > > descending;
 // priority_queue<pair<vector<string>,int>,vector<pair<vector<string>,int> > > *pq[2];
 
-void loadBlock(int n){
+int loadBlock(int n){
     // Load ith block from next record onwards
     ifstream in(to_string(n));
-    int currentRecord = currentRecordReadBlock[n] + 1;
-    if(currentRecord > recordsPresentBlock[n]){
+    int currentRecordToRead = currentRecordReadBlock[n] + 1;
+    if(currentRecordToRead > recordsPresentBlock[n]){
         cout<<"Block over\n";
-        return;
+        blockOver[n] = true;
+        return 1;
     }
-    in.seekg((currentRecord-1) * (recordLength+1));
+    debug("in.tellg() Before seekg", in.tellg());
+    in.seekg((currentRecordToRead-1) * (recordLength+1));
+    debug("in.tellg() After seekg", in.tellg());
     string line;
     int start = blockStatus[n].first;
     int end = blockStatus[n].second;
-    blockStatus[n].second = start;
+    blockStatus[n].second = start-1;
+    debug("miniblock Read: start, end, currentRecordToRead, currentRecordReadBlock[n], blockStatusCurrent[n]",
+        start, end, currentRecordToRead, currentRecordReadBlock[n], blockStatusCurrent[n]);
+
     REP(i, start, end){
         if(currentRecordReadBlock[n] == recordsPresentBlock[n]){
-            blockOver[n] = true;
+            // blockOver[n] = true;
             break;
         }
         getline(in, line);
+        if(i < start + 3)debug("first few lines read from block: ", line)
         // if(!getline(in, line)){
         //     blockOver[n] = true;
         //     break;
@@ -244,6 +278,9 @@ void loadBlock(int n){
         blockStatus[n].second++;
     }
     blockStatusCurrent[n] = start;
+    debug("miniblock Read ended: start, end, currentRecordToRead, currentRecordReadBlock[n], blockStatusCurrent[n]",
+        blockStatus[n].first, blockStatus[n].second, currentRecordToRead, currentRecordReadBlock[n], blockStatusCurrent[n]);
+    return 0;
 }
 
 
@@ -255,7 +292,9 @@ void storeBlock(){
     if(blockStatusCurrent[0] < end)
         end = blockStatusCurrent[0];
 
+    debug("Storing block blockStatus[0].first, blockStatus[0].second, start, end, blockStatusCurrent[0]: ", blockStatus[0].first, blockStatus[0].second, start, end, blockStatusCurrent[0])
     REP(i, start, end){
+
         string line;
         for(auto j:block[i]){
             line.append(j);
@@ -263,10 +302,14 @@ void storeBlock(){
                 line.append(" ");
         }
         // cout<<line<<endl;
+        if(i == start)debug("First output record: ", line);
+        if(i == end)debug("Last output record: ", line);
         finalOutput << line << endl;
     }
     // Block is clear, so reset it.
     blockStatusCurrent[0] = start;
+    debug("Storing block Done: blockStatus[0].first, blockStatus[0].second, start, end, blockStatusCurrent[0]: ", blockStatus[0].first, blockStatus[0].second, start, end, blockStatusCurrent[0])
+
 }
 
 void loadPQ(int noBlocks){
@@ -286,36 +329,63 @@ void loadPQ(int noBlocks){
     return;
 }
 
-void extractRecord(){
+void printTrace(int);
+
+void extractRecord(int noBlocks){
     if(order == 0){
         auto *pq = &ascending;
         // Check if outBlock is full or not
         
         REP(i, 1, noRecords){
             if(blockStatusCurrent[0] > blockStatus[0].second){
-                cout << i << "Storing output block into file" << endl;
+                cout << "Storing output block into file at record: " << i << endl;
                 storeBlock();
             }
 
-            int outBlockPos = blockStatusCurrent[0]++;
             // cout << i << "Into if"<< (*pq).empty() << endl;
             if(!(*pq).empty()){
+                int outBlockPos = blockStatusCurrent[0]++;
                 // Extract from queue
                 // cout<<i<<"Here"<<endl;
                 pair<vector<string>, int> p = (*pq).top();
                 block[outBlockPos] = p.first;
                 (*pq).pop();
-                // cout<<p.first[0]<<endl;
+                debug("Top of priority_queue: ", p.first[0], p.first[1], p.first[2])
                 // Load a record into queue from p.second miniblock
+                debug("Current popped block info: p.second, blockOver[p.second], blockStatusCurrent[p.second], \
+                    blockStatus[p.second].second", p.second, blockOver[p.second], blockStatusCurrent[p.second],
+                    blockStatus[p.second].second)
                 if(!blockOver[p.second]){
                     // Check if miniblock is not over, if over load it from file
                     if(blockStatusCurrent[p.second] > blockStatus[p.second].second){
-                        loadBlock(p.second);
+                        debug("Load block: p.second", p.second)
+                        if(loadBlock(p.second)){
+                            // Block over, move on!
+                            continue;
+                        }
                     }
+                    debug("Push element: p.second, blockStatusCurrent[p.second], block[blockStatusCurrent[p.second]]",
+                        p.second, blockStatusCurrent[p.second], block[blockStatusCurrent[p.second]][0], 
+                        block[blockStatusCurrent[p.second]][1], block[blockStatusCurrent[p.second]][2] )
                     (*pq).push({block[blockStatusCurrent[p.second]++], p.second});
+                } else {
+                    debug("Block over: p.second, i, noBlocks", p.second, i, noBlocks)
                 }
+            } else {
+                debug("Record: i, noRecords ", i, noRecords);
+                debug("Pq empty, shouldn't have happened");
+                storeBlock();
+                debug("Trace of blocks: ");
+                printTrace(noBlocks);
+                exit(1);
             }
         }
+        
+        debug("Record: i, noRecords ", noRecords);
+        debug("Pq empty, ");
+        storeBlock();
+        debug("Trace of blocks: ");
+        printTrace(noBlocks);
     } else {
         auto *pq = &descending;
     }
@@ -329,7 +399,26 @@ void mergeBlocks(int noBlocks){
 
     loadPQ(noBlocks);
     // cout<<ascending.empty()<<space<<descending.empty()<<endl;
-    extractRecord();
+    extractRecord(noBlocks);
 
+    return;
+}
+
+void printTrace(int noBlocks){
+    REP(i, 0, noBlocks){
+        debug("Block ", i)
+        debug("recordsPresentBlock: ", recordsPresentBlock[i])
+        debug("currentRecordReadBlock: ", currentRecordReadBlock[i])
+        debug("blockStatus: ", blockStatus[i].first, blockStatus[i].second)
+        debug("blockStatusCurrent: ", blockStatusCurrent[i])
+        debug("blockOver: ", blockOver[i])
+    }
+    debug("Main Block data: ");
+    for(auto i:block){
+        for(auto j:i){
+            cout<<j<<space;
+        }
+        cout<<endl;
+    }
     return;
 }
