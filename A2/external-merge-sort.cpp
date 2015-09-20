@@ -52,9 +52,9 @@ map<string, int> colSize;
 map<string, int> colName;
 vector<int> sortOrder;
 
-vector<int> recordsPresentBlock(1000, 0); //no of records present in block.
+vector<int> recordsPresentBlock; //no of records present in block.
 // Track last record read into memory
-vector<int> currentRecordReadBlock(1000, 0); //current record on in block.
+vector<int> currentRecordReadBlock; //current record on in block.
 
 //Actual block vector to be used for loading blocks. Its size is limited by file size.
 vector<vector<string> >  block; 
@@ -75,9 +75,8 @@ int read_metadata(){
     // Read metadata
     string col;
     int size, colNo = 0;
-
+    string delimit = ",";
     while(getline(meta, line)){
-        string delimit = ",";
         col = line.substr(0, line.find(delimit));
         size = atoi(line.substr(line.find(delimit)+1).c_str());
         colSize[col] = size;
@@ -110,10 +109,12 @@ void sortBlock(int i){
     ifstream blockFile(to_string(i));
     string line;
     block.clear();
+    vector<string> tokens;
+    string token;
     while(getline(blockFile, line)){
         // Space separate columns
-        vector<string> tokens;
-        string token;
+        tokens.clear();
+        token.clear();
         istringstream iss(line);
         while(iss >> token)tokens.pb(token);
         block.pb(tokens);
@@ -138,6 +139,7 @@ void sortBlock(int i){
 void mergeBlocks(int);
 
 int main(int argc, char *argv[]){
+    // _
     // ./sort input.txt output.txt 50 asc c0 c1
     if(argc < 6){
         cout<<"Not enough arguments\n";
@@ -146,6 +148,7 @@ int main(int argc, char *argv[]){
     
     int memoryToUse = atoi(argv[3]);// In MB
     // memoryToUse -= 10; //reserve some memory
+    memoryToUse = memoryToUse*0.6;
 
     if(strcmp(argv[4], "asc") == 0){
         order = 0;
@@ -189,11 +192,15 @@ int main(int argc, char *argv[]){
     cout << "Total blocks to use: " << noBlocks << endl;
     cout << "Records per block: " << recordsBlock << endl;
 
+    recordsPresentBlock.resize(noBlocks + 5, 0);
+    currentRecordReadBlock.resize(noBlocks + 5, 0);
     // Separate blocks into separate files
+    string blockFile;
+    ofstream out;
     REP(i, 1, noBlocks){
-        string blockFile = to_string(i);
+        blockFile = to_string(i);
         // cout<<blockFile<<endl;
-        ofstream out(blockFile);
+        out.open(blockFile);
         REP(j, 1, recordsBlock){
             if(!getline(IN, line)){
                 cout<<j<<"No more lines present...exiting.\n";
@@ -214,10 +221,13 @@ int main(int argc, char *argv[]){
     cout << "indivisual block sorted and written into file" << endl; 
 
     block.resize(recordsBlock+5);
-    blockStatus.resize(recordsBlock+5);
-    blockStatusCurrent.resize(recordsBlock+5);
+
+    blockStatus.resize(noBlocks+5);
+    blockStatusCurrent.resize(noBlocks+5);
+    
     int recordsMiniBlock = recordsBlock / (noBlocks + 1); // 1 additional for output
     cout << "records miniblocks: " << recordsMiniBlock << endl;
+    
     REP(i, 0, noBlocks){
         blockStatus[i].first = i*recordsMiniBlock;
         blockStatus[i].second = (i+1)*recordsMiniBlock - 1;
@@ -256,19 +266,21 @@ int loadBlock(int n){
     debug("miniblock Read: start, end, currentRecordToRead, currentRecordReadBlock[n], blockStatusCurrent[n]",
         start, end, currentRecordToRead, currentRecordReadBlock[n], blockStatusCurrent[n]);
 
+    vector<string> tokens;
+    string token;
     REP(i, start, end){
         if(currentRecordReadBlock[n] == recordsPresentBlock[n]){
             // blockOver[n] = true;
             break;
         }
         getline(in, line);
-        if(i < start + 3)debug("first few lines read from block: ", line)
+        if(i < start + 3){debug("first few lines read from block: ", line)}
         // if(!getline(in, line)){
         //     blockOver[n] = true;
         //     break;
         // }
-        vector<string> tokens;
-        string token;
+        tokens.clear();
+        token.clear();
         istringstream iss(line);
         while(iss >> token)tokens.pb(token);
         block[i] = tokens;
@@ -293,9 +305,10 @@ void storeBlock(){
         end = blockStatusCurrent[0];
 
     debug("Storing block blockStatus[0].first, blockStatus[0].second, start, end, blockStatusCurrent[0]: ", blockStatus[0].first, blockStatus[0].second, start, end, blockStatusCurrent[0])
+    string line;
     REP(i, start, end){
 
-        string line;
+        line.clear();
         for(auto j:block[i]){
             line.append(j);
             if(j != block[i][block[i].size()-1])
@@ -336,6 +349,9 @@ void extractRecord(int noBlocks){
         auto *pq = &ascending;
         // Check if outBlock is full or not
         
+        pair<vector<string>, int> p;
+        int outBlockPos;
+
         REP(i, 1, noRecords){
             if(blockStatusCurrent[0] > blockStatus[0].second){
                 cout << "Storing output block into file at record: " << i << endl;
@@ -344,10 +360,10 @@ void extractRecord(int noBlocks){
 
             // cout << i << "Into if"<< (*pq).empty() << endl;
             if(!(*pq).empty()){
-                int outBlockPos = blockStatusCurrent[0]++;
+                outBlockPos = blockStatusCurrent[0]++;
                 // Extract from queue
                 // cout<<i<<"Here"<<endl;
-                pair<vector<string>, int> p = (*pq).top();
+                p = (*pq).top();
                 block[outBlockPos] = p.first;
                 (*pq).pop();
                 // debug("Top of priority_queue: ", p.first[0], p.first[1], p.first[2])
@@ -388,6 +404,8 @@ void extractRecord(int noBlocks){
         printTrace(noBlocks);
     } else {
         auto *pq = &descending;
+        pair<vector<string>, int> p;
+        int outBlockPos;
         REP(i, 1, noRecords){
             if(blockStatusCurrent[0] > blockStatus[0].second){
                 cout << "Storing output block into file at record: " << i << endl;
@@ -396,10 +414,10 @@ void extractRecord(int noBlocks){
 
             // cout << i << "Into if"<< (*pq).empty() << endl;
             if(!(*pq).empty()){
-                int outBlockPos = blockStatusCurrent[0]++;
+                outBlockPos = blockStatusCurrent[0]++;
                 // Extract from queue
                 // cout<<i<<"Here"<<endl;
-                pair<vector<string>, int> p = (*pq).top();
+                p = (*pq).top();
                 block[outBlockPos] = p.first;
                 (*pq).pop();
                 // debug("Top of priority_queue: ", p.first[0], p.first[1], p.first[2])
@@ -441,6 +459,7 @@ void extractRecord(int noBlocks){
     }
 }
 
+
 void mergeBlocks(int noBlocks){
 
     REP(i, 1, noBlocks){
@@ -451,6 +470,10 @@ void mergeBlocks(int noBlocks){
     // cout<<ascending.empty()<<space<<descending.empty()<<endl;
     extractRecord(noBlocks);
 
+    // deleteFiles(noBlocks);
+    REP(i, 1, noBlocks){
+        remove(to_string(i).c_str());
+    }
     return;
 }
 
